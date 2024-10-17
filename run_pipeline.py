@@ -15,6 +15,10 @@ def make_repo_window(repos, window_sizes, slice_sizes):
     worker = MakeWindowWrapper(None, repos, window_sizes, slice_sizes)
     worker.window_for_repo_files()
 
+def make_repo_vector(repos, window_sizes, slice_sizes, vectorizer):
+    worker = BuildVectorWrapper(None, vectorizer, repos, window_sizes, slice_sizes)
+    worker.vectorize_repo_windows()
+
 
 def run_RG1_and_oracle_method(benchmark, repos, window_sizes, slice_sizes):
     # build code snippets for all the repositories
@@ -23,6 +27,7 @@ def run_RG1_and_oracle_method(benchmark, repos, window_sizes, slice_sizes):
     MakeWindowWrapper(benchmark, repos, window_sizes, slice_sizes).window_for_baseline_and_ground()
     # build vector for vanilla retrieval-augmented approach and ground truth
     vectorizer = BagOfWords
+    make_repo_vector(repos, window_sizes, slice_sizes, vectorizer)
     BuildVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_baseline_and_ground_windows()
     # search code for vanilla retrieval-augmented approach and ground truth
     CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_baseline_and_ground()

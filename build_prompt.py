@@ -141,6 +141,7 @@ class BuildPromptWrapper:
             repo_window_path = FilePathBuilder.repo_windows_path(repo, self.window_size, self.slice_size)
             repo_embedding_path = self.vector_path_builder(repo_window_path)
             retrieval_results = FilePathBuilder.retrieval_results_path(query_line_path, repo_embedding_path, self.max_top_k)
+            retrieval_results = retrieval_results.replace('[', '').replace(']', '')
             
             query_lines_with_retrieval_results = Tools.load_pickle(retrieval_results)
             log_message = f'repo: {repo}, window: {self.window_size}, slice: {self.slice_size}'
@@ -159,4 +160,3 @@ class BuildPromptWrapper:
     def build_prediction_prompt(self, mode, prediction_path, output_path):
         query_line_path_temp = functools.partial(FilePathBuilder.gen_first_window_path, self.benchmark, mode, prediction_path)
         self._run(mode, query_line_path_temp, output_path)
-
