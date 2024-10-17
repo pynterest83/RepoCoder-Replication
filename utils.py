@@ -18,6 +18,8 @@ class CONSTANTS:
     gt = 'gt'
     rg = 'r-g' # vanilla retrieval-augmented approach
     rgrg = 'r-g-r-g' # RepoCoder, two-stage retrieval and generation
+    rgrgrg = 'r-g-r-g-r-g' # RepoCoder, third-stage retrieval and generation 
+    rgrgrgrg = 'r-g-r-g-r-g-r-g' # RepoCoder, forth-stage retrieval and generation 
 
 class FilePathBuilder:
     api_completion_benchmark = 'datasets/api_level_completion_2k_context_codex.test.jsonl'
@@ -126,6 +128,7 @@ class Tools:
 
     @staticmethod
     def dump_jsonl(obj, fname):
+        FilePathBuilder.make_needed_dir(fname)
         with open(fname, 'w', encoding='utf8') as f:
             for item in obj:
                 f.write(json.dumps(item) + '\n')

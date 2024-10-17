@@ -68,8 +68,8 @@ if __name__ == '__main__':
     slice_sizes = [2]  # 20 / 2 = 10
 
     # build prompt for the RG1 and oracle methods
-    run_RG1_and_oracle_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes)
+    run_RG1_and_oracle_method(CONSTANTS.short_api_benchmark, repos, window_sizes, slice_sizes)
 
     # build prompt for the RepoCoder method
     prediction_path = 'predictions/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
-    run_RepoCoder_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes, prediction_path)
+    run_RepoCoder_method(CONSTANTS.short_api_benchmark, repos, window_sizes, slice_sizes, prediction_path)

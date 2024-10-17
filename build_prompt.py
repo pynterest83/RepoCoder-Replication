@@ -15,7 +15,7 @@ class PromptBuilder:
             self.max_retrieval_length = 2000  # half of the max length of the model
         elif tokenizer == CodeGenTokenizer:
             self.tokenizer = CodeGenTokenizer()
-            self.max_retrieval_length = 1000
+            self.max_retrieval_length = 900
         tasks = Tools.load_jsonl(task_path)
         self.tasks_by_task_id = {task['metadata']['task_id']: task for task in tasks}
         self.seperator = '# ' + '-' * 50
