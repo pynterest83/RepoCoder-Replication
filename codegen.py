@@ -1,83 +1,68 @@
 import torch
 import tqdm
-import json
 import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-class Tools:
-    @staticmethod
-    def load_jsonl(path):
-        with open(path, 'r') as f:
-            return [json.loads(line) for line in f.readlines()]
-    
-    @staticmethod
-    def dump_jsonl(obj, path):
-        with open(path, 'w') as f:
-            for line in obj:
-                f.write(json.dumps(line) + '\n')
-
+from utils import Tools
 
 class CodeGen:
     def __init__(self, model_name, batch_size):
         self.model_name = model_name
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
-        self.tokenizer.add_special_tokens({'pad_token': self.tokenizer.eos_token})
-        self.model.cuda()
         self.batch_size = batch_size
-        print('done loading model')
-    
-    def _get_batchs(self, prompts, batch_size):
-        batches = []
-        for i in range(0, len(prompts), batch_size):
-            batches.append(prompts[i:i+batch_size])
-        return batches
+        self.model = AutoModelForCausalLM.from_pretrained(model_name).cuda()
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side='left')
+        self.tokenizer.add_special_tokens({'pad_token': self.tokenizer.eos_token})
+        print(f'Loaded model {model_name} with {self.model.num_parameters()} parameters')
 
-    def _generate_batch(self, prompt_batch, max_new_tokens=100):
-        prompts = self.tokenizer(prompt_batch, return_tensors='pt', padding=True, truncation=True)
+    def generate(self, prompts, max_new_tokens=100):
+        inputs = self.tokenizer(prompts, return_tensors='pt', padding=True, truncation=True)
+        input_ids, attention_mask = inputs['input_ids'].cuda(), inputs['attention_mask'].cuda()
 
         with torch.no_grad():
-            gen_tokens = self.model.generate(
-                input_ids = prompts['input_ids'].cuda(),
-                attention_mask = prompts['attention_mask'].cuda(),
-                do_sample=False,
-                max_new_tokens=max_new_tokens,
+            output_tokens = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                do_sample = False,
+                max_new_tokens = max_new_tokens
             )
-        gen_text = self.tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)
-        for i in range(len(gen_text)):  # remove the prompt
-            print("Prompt:\n", prompt_batch[i])
-            gen_text[i] = gen_text[i][len(prompt_batch[i]):]
-            print("Gen_text:\n", gen_text[i])
-        return gen_text
 
-    def batch_generate(self, file):
-        print(f'generating from {file}')
-        lines = Tools.load_jsonl(file)
-        # have a new line at the end
+        # batch_size x seq_len
+        gen_texts = self.tokenizer.batch_decode(output_tokens, skip_special_tokens=True)
+        # remove the prompt
+        gen_texts = [
+            gen_text[len(prompt):].strip() for gen_text, prompt in zip(gen_texts, prompts)
+        ]
+        return gen_texts
+
+    def generate_by_batch_size (self, input_file, output_file, max_new_tokens=100):
+        print(f'Generating code for {input_file}...')
+        lines = Tools.load_jsonl(input_file)
         prompts = [f"{line['prompt']}\n" for line in lines]
-        batches = self._get_batchs(prompts, self.batch_size)
-        gen_text = []
-        for batch in tqdm.tqdm(batches):
-            gen_text.extend(self._generate_batch(batch))
-        print(f'generated {len(gen_text)} samples')
-        assert len(gen_text) == len(prompts)
-        new_lines = []
-        for line, gen in zip(lines, gen_text):
-            new_lines.append({
-                'prompt': line['prompt'],
-                'metadata': line['metadata'],
-                'choices': [{'text': gen}]
-            })
-        Tools.dump_jsonl(new_lines, file.replace('.jsonl', f'_{self.model_name.split("/")[-1]}.jsonl'))
 
+        generated_codes = []
+        for i in tqdm(range(0, len(prompts), self.batch_size)):
+            batch_prompts = prompts[i:i+self.batch_size]
+            generated_code = self.generate(batch_prompts, max_new_tokens=max_new_tokens)
+            generated_codes.extend(generated_code)
+        
+        if len(generated_codes) != len(lines):
+            raise ValueError('Number of generated codes does not match number of prompts')
+        
+        new_lines = [
+            {
+                'prompt': line['prompt'],
+                'metadata': line.get('metadata', {}),
+                'choices': [{'text': generated_code}]
+            }
+            for line, generated_code in zip(lines, generated_codes)
+        ]
+        Tools.dump_jsonl(new_lines, output_file)
+        print(f'Generated code saved to {output_file}')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default='Salesforce/codegen-350M-mono', type=str)
-    parser.add_argument("--file_path", default=None, type=str)
-    args = parser.parse_args()
-    # file_path = 'prompts/repocoder-one-gram-ws-20-ss-2.jsonl'
-    # tiny_codegen = 'Salesforce/codegen-350M-mono'
+    model = 'Salesforce/codegen-350M-multi'
+    file_path = 'prompts/rg-one-gram-ws-20-ss-2.jsonl'
+    output_path = 'predictions/' + file_path.split('/')[-1].replace('.jsonl', '_') + model.split('/')[-1] + '.jsonl'
+    print(output_path)
 
-    cg = CodeGen(args.model, batch_size=1)
-    cg.batch_generate(args.file_path)
+    cg = CodeGen(model, batch_size=1)
+    cg.generate_by_batch_size(file_path, output_path, max_new_tokens=100)
