@@ -9,7 +9,7 @@ from build_vector import BuildVectorWrapper, BagOfWords
 from search_code import CodeSearchWrapper
 from build_prompt import BuildPromptWrapper
 
-from utils import CONSTANTS, CodexTokenizer
+from utils import CONSTANTS, CodeGenTokenizer
 
 def make_repo_window(repos, window_sizes, slice_sizes):
     worker = MakeWindowWrapper(None, repos, window_sizes, slice_sizes)
@@ -32,7 +32,7 @@ def run_RG1_and_oracle_method(benchmark, repos, window_sizes, slice_sizes):
     # search code for vanilla retrieval-augmented approach and ground truth
     CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_baseline_and_ground()
     # build prompt for vanilla retrieval-augmented approach and ground truth
-    tokenizer = CodexTokenizer
+    tokenizer = CodeGenTokenizer
     mode = CONSTANTS.rg
     output_file_path = 'prompts/rg-one-gram-ws-20-ss-2.jsonl'
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_first_search_prompt(mode, output_file_path)
@@ -48,7 +48,7 @@ def run_RepoCoder_method(benchmark, repos, window_sizes, slice_sizes, prediction
     vectorizer = BagOfWords
     BuildVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_prediction_windows(mode, prediction_path)
     CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_prediction(mode, prediction_path)
-    tokenizer = CodexTokenizer
+    tokenizer = CodeGenTokenizer
     output_file_path = 'prompts/repocoder-one-gram-ws-20-ss-2.jsonl'
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_prediction_prompt(mode, prediction_path, output_file_path)
 
