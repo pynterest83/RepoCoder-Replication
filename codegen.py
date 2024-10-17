@@ -1,10 +1,9 @@
 import torch
 import tqdm
-import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils import Tools
 
-class CodeGen:
+class CodeGenModel:
     def __init__(self, model_name, batch_size):
         self.model_name = model_name
         self.batch_size = batch_size
@@ -64,5 +63,5 @@ if __name__ == '__main__':
     output_path = 'predictions/' + file_path.split('/')[-1].replace('.jsonl', '_') + model.split('/')[-1] + '.jsonl'
     print(output_path)
 
-    cg = CodeGen(model, batch_size=1)
+    cg = CodeGenModel(model, batch_size=1)
     cg.generate_by_batch_size(file_path, output_path, max_new_tokens=100)
