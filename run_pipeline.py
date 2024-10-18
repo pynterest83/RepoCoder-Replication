@@ -9,8 +9,9 @@ from build_vector import BuildVectorWrapper, BagOfWords
 from search_code import CodeSearchWrapper
 from build_prompt import BuildPromptWrapper
 from codegen import CodeGenModel
+from compute_score import compute_score_by_repo_with_metadata
 
-from utils import CONSTANTS, CodeGenTokenizer, FilePathBuilder
+from utils import CONSTANTS, CodeGenTokenizer, FilePathBuilder, Tools
 
 def make_repo_window(repos, window_sizes, slice_sizes):
     worker = MakeWindowWrapper(None, repos, window_sizes, slice_sizes)
@@ -85,6 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('--vectorizer_type', type=str, default='one-gram')
     parser.add_argument('--model_name', type=str, default='Salesforce/codegen-350M-mono')
     parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--score_type', type=str, default='EM')
 
     args = parser.parse_args()
 
@@ -106,11 +108,12 @@ if __name__ == '__main__':
         run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
     else:
         # build prompt for the RG1 and oracle methods
-        # run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
+        run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
         cur_mode = 'r-g'
         input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
         output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
         cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+        compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
         # iter for iterations times.
         for i in range (iterations):
             cur_mode = cur_mode + '-' + cur_mode
@@ -119,3 +122,4 @@ if __name__ == '__main__':
             input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
             output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
             cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+            compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)

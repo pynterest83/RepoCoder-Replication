@@ -56,12 +56,3 @@ class CodeGenModel:
         ]
         Tools.dump_jsonl(new_lines, output_file)
         print(f'Generated code saved to {output_file}')
-
-if __name__ == '__main__':
-    model = 'Salesforce/codegen-350M-multi'
-    file_path = 'prompts/rg-one-gram-ws-20-ss-2.jsonl'
-    output_path = 'predictions/' + file_path.split('/')[-1].replace('.jsonl', '_') + model.split('/')[-1] + '.jsonl'
-    print(output_path)
-
-    cg = CodeGenModel(model, batch_size=1)
-    cg.generate_by_batch_size(file_path, output_path, max_new_tokens=100)

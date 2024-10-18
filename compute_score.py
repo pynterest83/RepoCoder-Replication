@@ -49,19 +49,3 @@ def compute_score_by_repo_with_metadata(repos, lines, stype, passk=1):
     print(stype)
     for repo in avg_scores.keys():
         print(f'{avg_scores[repo]}\t{repo_count[repo]}\t{repo}')
-
-if __name__ == '__main__':
-    repos = [
-        'huggingface_diffusers',
-        'nerfstudio-project_nerfstudio',
-        'awslabs_fortuna',
-        'huggingface_evaluate',
-        'google_vizier',
-        'alibaba_FederatedScope',
-        'pytorch_rl',
-        'opendilab_ACE',
-    ]
-    '''compute single prediction'''
-    file_path = 'output/line-rgrg-ada-ws-20-ss-2_samples.0.jsonl'
-    compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(file_path), 'EM', passk=1)
-    compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(file_path), 'ES', passk=1)
