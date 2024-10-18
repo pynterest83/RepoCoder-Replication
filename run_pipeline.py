@@ -75,6 +75,12 @@ def get_repos(benchmark):
         repos.append(repo)
     return mode, repos, repo_base_dir
 
+def check_boundaries(oracle_method_score, cur_score):
+    for repo in oracle_method_score:
+        if cur_score[repo] >= oracle_method_score[repo] - 0.01:
+            return True
+    return False
+
 if __name__ == '__main__':
     import argparse
 
@@ -106,6 +112,23 @@ if __name__ == '__main__':
         # iter until the score converges for the ground truth method
         # build prompt for the RG1 and oracle methods
         run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
+        # compute the score for the ground truth method
+        cg.generate_by_batch_size('prompts/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl', 'predictions/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl', max_new_tokens=100)
+        oracle_method_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl('predictions/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl'), args.score_type, passk=1)
+        cur_mode = 'r-g'
+        input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
+        output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
+        cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+        cur_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
+        while not check_boundaries(oracle_method_score, cur_score):
+            cur_mode = cur_mode + '-' + cur_mode
+            prediction_path = output_path
+            run_RepoCoder_method(benchmark_mode, repos, window_sizes, slice_sizes, prediction_path, cur_mode, vectorizer_type)
+            input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
+            output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
+            cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+            cur_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
+
     else:
         # build prompt for the RG1 and oracle methods
         run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
@@ -113,7 +136,6 @@ if __name__ == '__main__':
         input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
         output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
         cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
-        compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
         # iter for iterations times.
         for i in range (iterations):
             cur_mode = cur_mode + '-' + cur_mode
@@ -122,4 +144,3 @@ if __name__ == '__main__':
             input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
             output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
             cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
-            compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)

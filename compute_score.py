@@ -49,3 +49,4 @@ def compute_score_by_repo_with_metadata(repos, lines, stype, passk=1):
     print(stype)
     for repo in avg_scores.keys():
         print(f'{avg_scores[repo]}\t{repo_count[repo]}\t{repo}')
+    return {repo: avg_scores[repo] for repo in avg_scores}
