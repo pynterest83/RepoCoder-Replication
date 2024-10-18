@@ -98,7 +98,7 @@ if __name__ == '__main__':
     model_name = args.model_name
     batch_size = args.batch_size
     iterations = args.iterations
-    # cg = CodeGenModel(model_name, batch_size)
+    cg = CodeGenModel(model_name, batch_size)
 
     if args.iterations == 0:
         # iter until the score converges for the ground truth method
@@ -110,7 +110,7 @@ if __name__ == '__main__':
         cur_mode = 'r-g'
         input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
         output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-        # cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+        cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
         # iter for iterations times.
         for i in range (iterations):
             cur_mode = cur_mode + '-' + cur_mode
@@ -118,4 +118,4 @@ if __name__ == '__main__':
             run_RepoCoder_method(benchmark_mode, repos, window_sizes, slice_sizes, prediction_path, cur_mode, vectorizer_type)
             input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
             output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-            # cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+            cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
