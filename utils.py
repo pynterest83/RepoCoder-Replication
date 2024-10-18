@@ -30,6 +30,10 @@ class FilePathBuilder:
     repo_base_dir = 'repositories/'
 
     @staticmethod
+    def set_repo_base_dir(repo_base_dir):
+        FilePathBuilder.repo_base_dir = repo_base_dir
+
+    @staticmethod
     def make_needed_dir(file_path):
         dir_path = os.path.dirname(file_path)
         if not os.path.exists(dir_path):
