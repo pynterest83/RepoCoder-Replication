@@ -87,6 +87,12 @@ class FilePathBuilder:
         FilePathBuilder.make_needed_dir(out_path)
         return out_path
 
+    @staticmethod
+    def build_input_output_path(cur_mode, vectorizer_type, model_name):
+        input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
+        output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
+
+        return input_path, output_path
 
 class CodexTokenizer:
     def __init__(self):

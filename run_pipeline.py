@@ -81,6 +81,16 @@ def check_boundaries(oracle_method_score, cur_score):
             return True
     return False
 
+def run_iteration(cur_mode, cg, benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type, model_name):
+    input_path, output_path = FilePathBuilder.build_input_output_path(cur_mode, vectorizer_type, model_name)
+    cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+    cur_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
+    prediction_path = output_path
+    cur_mode = cur_mode + '-' + cur_mode
+    run_RepoCoder_method(benchmark_mode, repos, window_sizes, slice_sizes, prediction_path, cur_mode, vectorizer_type)
+
+    return cur_score, cur_mode
+
 if __name__ == '__main__':
     import argparse
 
@@ -88,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--bench_mark', type=str, default='short_api_benchmark')
     parser.add_argument('--window_sizes', nargs='+', type=int, default=[20])
     parser.add_argument('--slice_sizes', nargs='+', type=int, default=[2])
-    parser.add_argument('--iterations', type=int, default=1)
+    parser.add_argument('--iterations', type=int, default=2)
     parser.add_argument('--vectorizer_type', type=str, default='one-gram')
     parser.add_argument('--model_name', type=str, default='Salesforce/codegen-350M-mono')
     parser.add_argument('--batch_size', type=int, default=1)
@@ -110,37 +120,18 @@ if __name__ == '__main__':
 
     if args.iterations == 0:
         # iter until the score converges for the ground truth method
-        # build prompt for the RG1 and oracle methods
         run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
         # compute the score for the ground truth method
         cg.generate_by_batch_size('prompts/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl', 'predictions/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl', max_new_tokens=100)
         oracle_method_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl('predictions/gt-' + vectorizer_type + '-ws-20-ss-2.jsonl'), args.score_type, passk=1)
         cur_mode = 'r-g'
-        input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
-        output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-        cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
-        cur_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
+        cur_score = {repo: 0 for repo in repos}
         while not check_boundaries(oracle_method_score, cur_score):
-            cur_mode = cur_mode + '-' + cur_mode
-            prediction_path = output_path
-            run_RepoCoder_method(benchmark_mode, repos, window_sizes, slice_sizes, prediction_path, cur_mode, vectorizer_type)
-            input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
-            output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-            cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
-            cur_score = compute_score_by_repo_with_metadata(repos, Tools.load_jsonl(output_path), args.score_type, passk=1)
+            cur_score, cur_mode = run_iteration(cur_mode, cg, benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type, model_name)
 
     else:
-        # build prompt for the RG1 and oracle methods
         run_RG1_and_oracle_method(benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type)
         cur_mode = 'r-g'
-        input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
-        output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-        cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
         # iter for iterations times.
         for i in range (iterations):
-            cur_mode = cur_mode + '-' + cur_mode
-            prediction_path = output_path
-            run_RepoCoder_method(benchmark_mode, repos, window_sizes, slice_sizes, prediction_path, cur_mode, vectorizer_type)
-            input_path = 'prompts/' + cur_mode.replace("-", "") + "-" + vectorizer_type + '-ws-20-ss-2.jsonl'
-            output_path = 'predictions/' + input_path.split('/')[-1].replace('.jsonl', '_') + model_name.split('/')[-1] + '.jsonl'
-            cg.generate_by_batch_size(input_path, output_path, max_new_tokens=100)
+            _, cur_mode = run_iteration(cur_mode, cg, benchmark_mode, repos, window_sizes, slice_sizes, vectorizer_type, model_name)
